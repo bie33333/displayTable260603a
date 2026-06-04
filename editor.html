@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图册编辑器 - 管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toolbar h2 {
+            font-size: 18px;
+            color: #4a3028;
+        }
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: #d4a08a; color: #fff; }
+        .btn-success { background: #07c160; color: #fff; }
+        .btn-danger { background: #e8785a; color: #fff; }
+        .btn-outline { background: #fff; color: #666; border: 1px solid #ddd; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* 主体 */
+        .editor-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* 全局设置卡片 */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #4a3028;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: #d4a08a; }
+        textarea.form-input {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        .form-row > * { flex: 1; }
+
+        /* 产品卡片编辑 */
+        .product-editor-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            border-left: 4px solid #d4a08a;
+            position: relative;
+        }
+        .product-editor-card.featured-card {
+            border-left-color: #e8785a;
+        }
+        .product-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .product-index {
+            font-size: 13px;
+            font-weight: 700;
+            color: #d4a08a;
+        }
+        .featured-card .product-index { color: #e8785a; }
+        .product-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .product-preview-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 2px solid #f0e8e2;
+        }
+        .img-select-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .img-select-row select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+        .tag-select {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .tag-select select {
+            padding: 6px 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        /* 拖拽排序 */
+        .drag-handle {
+            cursor: grab;
+            color: #ccc;
+            font-size: 18px;
+            padding: 4px;
+            user-select: none;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .product-editor-card.dragging {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+        .drop-zone {
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .drop-zone.active {
+            height: 40px;
+            background: rgba(212,160,138,0.15);
+            border: 2px dashed #d4a08a;
+        }
+
+        /* 提示 */
+        .tip-bar {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #8c6d00;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%) scale(0.8);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 22px;
+            font-size: 14px;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+        /* 弹窗 - 导入导出 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 12px; color: #4a3028; }
+        .modal textarea {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            font-family: monospace;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <!-- 工具栏 -->
+    <div class="toolbar">
+        <h2>📝 图册编辑器</h2>
+        <div class="toolbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="showImportExport('import')">📥 导入</button>
+            <button class="btn btn-outline btn-sm" onclick="showImportExport('export')">📤 导出</button>
+            <button class="btn btn-outline btn-sm" onclick="addProduct()">➕ 添加产品</button>
+            <button class="btn btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <!-- 提示 -->
+        <div class="tip-bar">
+            💡 <b>使用方法：</b>编辑产品信息 → 点「保存并预览」→ 会自动打开顾客看到的最终页面。<br>
+            📌 数据保存在浏览器本地，关闭页面不会丢失。换电脑需用「导出/导入」迁移。
+        </div>
+
+        <!-- 全局设置 -->
+        <div class="card">
+            <div class="card-title">⚙️ 页面全局设置</div>
+            <div class="form-group">
+                <label class="form-label">页面标题</label>
+                <input class="form-input" id="globalTitle" value="护肤臻品图册">
+            </div>
+            <div class="form-group">
+                <label class="form-label">英文副标题</label>
+                <input class="form-input" id="globalSubtitle" value="SKINCARE COLLECTION">
+            </div>
+            <div class="form-group">
+                <label class="form-label">封面大标题</label>
+                <input class="form-input" id="coverTitle" value="臻选护肤好物">
+            </div>
+            <div class="form-group">
+                <label class="form-label">封面描述</label>
+                <input class="form-input" id="coverDesc" value="用心甄选 · 呵护每一寸肌肤">
+            </div>
+            <div class="form-group">
+                <label class="form-label">封面标签</label>
+                <input class="form-input" id="coverBadge" value="HOT RECOMMEND">
+            </div>
+            <div class="form-group">
+                <label class="form-label">底部咨询微信号（客户点击后显示）</label>
+                <input class="form-input" id="wechatId" value="XXX_WeChat">
+            </div>
+        </div>
+
+        <!-- 产品列表 -->
+        <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+                <span>🛍️ 产品列表（共 <span id="productCount">12</span> 款）</span>
+                <button class="btn btn-outline btn-sm" onclick="addProduct()">➕ 添加</button>
+            </div>
+            <div id="productList">
+                <!-- JS 动态渲染 -->
+            </div>
+        </div>
+
+        <!-- 底部操作 -->
+        <div style="display:flex;gap:10px;margin-bottom:40px;">
+            <button class="btn btn-primary" style="flex:1;padding:12px;" onclick="saveAndPreview()">💾 保存并预览图册</button>
+            <button class="btn btn-outline" style="flex:1;padding:12px;" onclick="showImportExport('export')">📤 导出数据备份</button>
+        </div>
+    </div>
+
+    <!-- 导入导出弹窗 -->
+    <div class="modal-overlay" id="importExportModal" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 id="modalTitle">导出数据</h3>
+            <p style="font-size:13px;color:#888;margin-bottom:10px;" id="modalTip"></p>
+            <textarea id="modalTextarea" readonly></textarea>
+            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+                <button class="btn btn-outline btn-sm" id="modalActionBtn" onclick="doImportExport()"></button>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('importExportModal').classList.remove('active')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============ 默认产品数据 ============
+        const defaultProducts = [
+            { id:1, name:'澳泊源双萃维稳紧数精华液', brief:'双萃焕活·维稳紧致·淡化细纹', price:'138', originalPrice:'269', tag:'HOT', tagClass:'hot', featured:true, desc:'【双萃精华】独特双萃配比，融合多重植物精粹与修护成分，深层滋养肌底，提升肌肤弹性与紧致度。有效改善肌肤粗糙松弛，淡化干纹细纹，令肌肤水嫩饱满、透亮有光泽。', tags:['双萃精华','维稳修护','紧致淡纹','深层滋养'], img:'new/澳泊源双萃维稳紧数精华液(269 138).jpg' },
+            { id:2, name:'杜芙特·阻人乳头瘤病毒(HPV)凝胶', brief:'靶向阻隔·私密护理·健康呵护', price:'128', originalPrice:'388', tag:'HOT', tagClass:'hot', featured:false, desc:'【私密护理】专为女性私密健康研发，含独特阻断成分，有效阻隔HPV病毒侵袭。温和配方不刺激，日常使用守护私密部位健康，让女性远离困扰、自信从容。', tags:['私密护理','HPV防护','温和配方','女性健康'], img:'new/杜芙特·阻人乳头瘤病毒(HPV)凝胶(388 128).jpg' },
+            { id:3, name:'抗时光PQQ胶原蛋白三肽风味饮料', brief:'口服养肤·胶原再生·逆转肌龄', price:'98', originalPrice:'269', tag:'新品', tagClass:'new', featured:false, desc:'【内调养肤】含PQQ活性因子与胶原蛋白三肽，小分子高吸收，由内而外补充肌肤胶原。帮助提升肌肤弹性、淡化皱纹，焕活年轻光采，喝出嘭弹水光肌。', tags:['PQQ活性','胶原蛋白','口服养肤','抗老逆龄'], img:'new/抗时光PQQ胶原蛋白三肽风味饮料(269 98).jpg' },
+            { id:4, name:'库库小屋柔雾不沾杯唇釉', brief:'柔雾哑光·持久显色·不沾杯不掉色', price:'68', originalPrice:'128', tag:'新品', tagClass:'new', featured:false, desc:'【柔雾唇釉】丝绒柔雾质地，上唇轻盈顺滑，一抹即现高级哑光妆感。成膜迅速、持久锁色，喝水不沾杯、亲吻不掉色，全天候保持完美唇妆。', tags:['柔雾哑光','不沾杯','持久显色','高级质感'], img:'new/库库小屋柔雾不沾杯唇釉（128 68）.jpg' },
+            { id:5, name:'天山雪莲抑菌粉护垫', brief:'雪莲精华·天然抑菌·清爽呵护', price:'68', originalPrice:'138', tag:'HOT', tagClass:'hot', featured:false, desc:'【草本护垫】精选天山雪莲等多重草本精华，天然抑菌、温和洁净。柔软亲肤表层，透气干爽，经期及日常均可安心使用，给私密处舒适守护。', tags:['雪莲精华','天然抑菌','透气干爽','日常护理'], img:'new/天山雪莲抑菌粉护垫（138 68）.jpg' },
+            { id:6, name:'天羽颜坊草本抑菌粉', brief:'古方草本·深层抑菌·温和不刺激', price:'168', originalPrice:'388', tag:'新品', tagClass:'new', featured:false, desc:'【草本抑菌】传承草本古方，甄选多味道地药材精心配伍，深入抑菌、温和调理。针对私密部位异味、瘙痒等困扰，帮助恢复健康微环境。', tags:['草本配方','深层抑菌','温和调理','私密护理'], img:'new/天羽颜坊草本抑菌粉（388 168）.jpg' },
+            { id:7, name:'兮缇兰50+美白防晒乳', brief:'SPF50+高倍防晒·美白隔离·轻薄水润', price:'58', originalPrice:'98', tag:'HOT', tagClass:'hot', featured:false, desc:'【美白防晒】SPF50+ PA++++高倍防晒力，有效阻隔UVA/UVB。添加美白精华成分，防晒同时提亮肤色。水润乳液质地，清爽不黏腻、不假白，适合日常通勤及户外活动。', tags:['高倍防晒','美白提亮','轻薄水润','防晒隔离'], img:'new/兮缇兰50+美白防晒乳（98 58）.jpg' },
+            { id:8, name:'植萃保湿抗妆抗皱霜', brief:'植萃精华·深层保湿·抗皱紧致', price:'56', originalPrice:'98', tag:'新品', tagClass:'new', featured:false, desc:'【植萃抗皱】蕴含多种植物萃取精华，深入补水锁湿，提升肌肤含水量。有效改善因干燥引起的细纹与松弛，长期使用紧致轮廓、平滑肤质，还原水嫩弹润肌肤。', tags:['植萃精华','深层保湿','抗皱紧致','平滑嫩肤'], img:'new/植萃保湿抗妆抗皱霜（98 56）.jpg' },
+            { id:9, name:'BAOXTUGE宝秀格电动按摩眼霜', brief:'微震按摩·淡化眼纹·焕亮眼周', price:'99', originalPrice:'218', tag:'HOT', tagClass:'hot', featured:false, desc:'【电动眼霜】高频微震按摩头设计，搭配滋养眼霜精华，每秒数千次震动促进吸收。精准击退眼周细纹、黑眼圈及浮肿，恢复紧致明亮的年轻双眸。', tags:['电动按摩','淡化眼纹','去黑眼圈','紧致眼周'], img:'new/BAOXTUGE宝秀格电动按摩眼霜（218 99）.jpg' },
+            { id:10, name:'MIUSITE精华液', brief:'密集修护·焕亮肤色·水润透光', price:'82', originalPrice:'169', tag:'新品', tagClass:'new', featured:false, desc:'【焕亮精华】高浓度精华配方，渗透肌底密集修护。改善肌肤暗沉不均，提亮肤色，同时补水保湿，令肌肤由内而外透出水润光泽感。', tags:['密集修护','提亮肤色','补水保湿','焕发光泽'], img:'new/MIUSITE精华液（169 82）.jpg' },
+            { id:11, name:'Msnbeauty气垫CC霜', brief:'轻薄遮瑕·水光裸妆·自然服帖', price:'88', originalPrice:'188', tag:'HOT', tagClass:'hot', featured:false, desc:'【水光气垫】微米级粉质细腻轻薄，一拍自然遮瑕不假面。含保湿精华成分，上妆即养肤，打造韩式水光裸妆效果，全天不暗沉不卡粉。', tags:['轻薄遮瑕','水光裸妆','保湿养肤','自然服帖'], img:'new/Msnbeauty气垫CC霜（188 88）.jpg' }
+        ];
+
+        const defaultSettings = {
+            globalTitle: '护肤臻品图册',
+            globalSubtitle: 'SKINCARE COLLECTION',
+            coverTitle: '臻选护肤好物',
+            coverDesc: '用心甄选 · 呵护每一寸肌肤',
+            coverBadge: 'HOT RECOMMEND',
+            wechatId: 'XXX_WeChat'
+        };
+
+        // ============ 数据管理 ============
+        function getProducts() {
+            const raw = localStorage.getItem('skincare_products');
+            return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultProducts));
+        }
+        function saveProducts(arr) {
+            localStorage.setItem('skincare_products', JSON.stringify(arr));
+            renderProductList();
+        }
+        function getSettings() {
+            const raw = localStorage.getItem('skincare_settings');
+            return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultSettings));
+        }
+        function saveSettings(obj) {
+            localStorage.setItem('skincare_settings', JSON.stringify(obj));
+        }
+
+        // ============ 全局设置加载 ============
+        function loadGlobalSettings() {
+            const s = getSettings();
+            document.getElementById('globalTitle').value = s.globalTitle;
+            document.getElementById('globalSubtitle').value = s.globalSubtitle;
+            document.getElementById('coverTitle').value = s.coverTitle;
+            document.getElementById('coverDesc').value = s.coverDesc;
+            document.getElementById('coverBadge').value = s.coverBadge;
+            document.getElementById('wechatId').value = s.wechatId;
+        }
+
+        // ============ 渲染产品编辑列表 ============
+        function renderProductList() {
+            const products = getProducts();
+            const container = document.getElementById('productList');
+            document.getElementById('productCount').textContent = products.length;
+
+            // 获取可用图片列表（从 localStorage 或默认）
+            const imgFiles = getAvailableImages();
+
+            container.innerHTML = products.map((p, index) => `
+                <div class="product-editor-card ${p.featured ? 'featured-card' : ''}" data-id="${p.id}" draggable="true"
+                     ondragstart="handleDragStart(event, ${index})"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, ${index})"
+                     ondragend="handleDragEnd(event)">
+                    <div class="product-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="drag-handle" title="拖拽排序">⠿</span>
+                            <span class="product-index">#${index + 1} ${p.featured ? '⭐ 精选推荐' : ''}</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn btn-outline btn-sm" onclick="toggleFeatured(${p.id})">${p.featured ? '取消精选' : '设为精选'}</button>
+                            <button class="btn btn-outline btn-sm" onclick="moveProduct(${p.id}, -1)" ${index === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="btn btn-outline btn-sm" onclick="moveProduct(${p.id}, 1)" ${index === products.length - 1 ? 'disabled' : ''}>↓</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">🗑</button>
+                        </div>
+                    </div>
+                    <div class="img-select-row">
+                        <img class="product-preview-img" src="${p.img}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><rect fill=%22%23f0e8e2%22 width=%2280%22 height=%2280%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23ccc%22 font-size=%2212%22>无图片</text></svg>'">
+                        <select onchange="updateProductField(${p.id}, 'img', this.value)" style="flex:1;">
+                            <option value="">-- 选择图片 --</option>
+                            ${imgFiles.map(f => `<option value="${f}" ${p.img === f ? 'selected' : ''}>${f}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">产品名称</label>
+                            <input class="form-input" value="${escapeHtml(p.name)}" onchange="updateProductField(${p.id}, 'name', this.value)">
+                        </div>
+                        <div class="form-group" style="max-width:100px;">
+                            <label class="form-label">售价 ¥</label>
+                            <input class="form-input" value="${p.price}" onchange="updateProductField(${p.id}, 'price', this.value)">
+                        </div>
+                        <div class="form-group" style="max-width:100px;">
+                            <label class="form-label">原价 ¥</label>
+                            <input class="form-input" value="${p.originalPrice}" onchange="updateProductField(${p.id}, 'originalPrice', this.value)">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">简短描述（卡片上显示）</label>
+                        <input class="form-input" value="${escapeHtml(p.brief)}" onchange="updateProductField(${p.id}, 'brief', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">详细描述（弹窗中显示）</label>
+                        <textarea class="form-input" onchange="updateProductField(${p.id}, 'desc', this.value)">${escapeHtml(p.desc)}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="tag-select">
+                            <label class="form-label" style="margin:0;">角标类型</label>
+                            <select onchange="updateProductTag(${p.id}, this.value)">
+                                <option value="hot,HOT" ${p.tagClass === 'hot' ? 'selected' : ''}>🔥 HOT（红色）</option>
+                                <option value="new,新品" ${p.tagClass === 'new' ? 'selected' : ''}>✨ 新品（棕色）</option>
+                                <option value="none," ${!p.tagClass || p.tagClass === 'none' ? 'selected' : ''}>无角标</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">特性标签（逗号分隔，如：补水保湿,提亮肤色,温和）</label>
+                        <input class="form-input" value="${(p.tags || []).join(',')}" onchange="updateProductField(${p.id}, 'tags', this.value)">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // ============ 获取可用图片 ============
+        // 真实产品图片列表（手动维护，匹配 new/ 文件夹内的文件）
+        function getAvailableImages() {
+            return [
+                'new/澳泊源双萃维稳紧数精华液(269 138).jpg',
+                'new/杜芙特·阻人乳头瘤病毒(HPV)凝胶(388 128).jpg',
+                'new/抗时光PQQ胶原蛋白三肽风味饮料(269 98).jpg',
+                'new/库库小屋柔雾不沾杯唇釉（128 68）.jpg',
+                'new/天山雪莲抑菌粉护垫（138 68）.jpg',
+                'new/天羽颜坊草本抑菌粉（388 168）.jpg',
+                'new/兮缇兰50+美白防晒乳（98 58）.jpg',
+                'new/植萃保湿抗妆抗皱霜（98 56）.jpg',
+                'new/BAOXTUGE宝秀格电动按摩眼霜（218 99）.jpg',
+                'new/MIUSITE精华液（169 82）.jpg',
+                'new/Msnbeauty气垫CC霜（188 88）.jpg'
+            ];
+        }
+
+        // ============ 产品操作 ============
+        function updateProductField(id, field, value) {
+            const products = getProducts();
+            const p = products.find(p => p.id === id);
+            if (!p) return;
+            if (field === 'tags') {
+                p.tags = value.split(',').map(t => t.trim()).filter(t => t);
+            } else {
+                p[field] = value;
+            }
+            saveProducts(products);
+        }
+
+        function updateProductTag(id, value) {
+            const products = getProducts();
+            const p = products.find(p => p.id === id);
+            if (!p) return;
+            const [tagClass, tag] = value.split(',');
+            p.tagClass = tagClass === 'none' ? '' : tagClass;
+            p.tag = tagClass === 'none' ? '' : tag;
+            saveProducts(products);
+        }
+
+        function toggleFeatured(id) {
+            const products = getProducts();
+            const p = products.find(p => p.id === id);
+            if (!p) return;
+            p.featured = !p.featured;
+            saveProducts(products);
+        }
+
+        function deleteProduct(id) {
+            if (!confirm('确定删除这个产品吗？')) return;
+            const products = getProducts();
+            saveProducts(products.filter(p => p.id !== id));
+            showToast('已删除');
+        }
+
+        function addProduct() {
+            const products = getProducts();
+            const maxId = products.reduce((max, p) => Math.max(max, p.id), 0);
+            products.push({
+                id: maxId + 1,
+                name: '新产品名称',
+                brief: '简短描述',
+                price: '199',
+                originalPrice: '299',
+                tag: '新品',
+                tagClass: 'new',
+                featured: false,
+                desc: '产品详细描述...',
+                tags: ['标签1', '标签2'],
+                img: getAvailableImages()[0] || ''
+            });
+            saveProducts(products);
+            showToast('已添加新产品');
+            // 滚动到底部
+            setTimeout(() => {
+                document.getElementById('productList').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function moveProduct(id, direction) {
+            const products = getProducts();
+            const idx = products.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            const newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= products.length) return;
+            [products[idx], products[newIdx]] = [products[newIdx], products[idx]];
+            saveProducts(products);
+        }
+
+        // ============ 拖拽排序 ============
+        let dragSrcIndex = null;
+        function handleDragStart(e, index) {
+            dragSrcIndex = index;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        function handleDragLeave(e) {
+            e.target.classList.remove('drop-zone-active');
+        }
+        function handleDrop(e, targetIndex) {
+            e.preventDefault();
+            if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+            const products = getProducts();
+            const [moved] = products.splice(dragSrcIndex, 1);
+            products.splice(targetIndex, 0, moved);
+            saveProducts(products);
+            dragSrcIndex = null;
+        }
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            dragSrcIndex = null;
+        }
+
+        // ============ 导入导出 ============
+        let importExportMode = 'export';
+        function showImportExport(mode) {
+            importExportMode = mode;
+            const modal = document.getElementById('importExportModal');
+            const title = document.getElementById('modalTitle');
+            const tip = document.getElementById('modalTip');
+            const textarea = document.getElementById('modalTextarea');
+            const actionBtn = document.getElementById('modalActionBtn');
+
+            if (mode === 'export') {
+                title.textContent = '📤 导出数据备份';
+                tip.textContent = '复制以下内容保存到本地文件。导入时可粘贴恢复。';
+                const data = {
+                    settings: getSettings(),
+                    products: getProducts()
+                };
+                textarea.value = JSON.stringify(data, null, 2);
+                textarea.readOnly = true;
+                actionBtn.textContent = '📋 复制到剪贴板';
+                actionBtn.style.display = '';
+            } else {
+                title.textContent = '📥 导入数据';
+                tip.textContent = '粘贴之前导出的 JSON 数据，点击导入即可恢复。';
+                textarea.value = '';
+                textarea.readOnly = false;
+                actionBtn.textContent = '✅ 确认导入';
+                actionBtn.style.display = '';
+            }
+            modal.classList.add('active');
+        }
+
+        function doImportExport() {
+            if (importExportMode === 'export') {
+                const textarea = document.getElementById('modalTextarea');
+                navigator.clipboard.writeText(textarea.value).then(() => {
+                    showToast('已复制到剪贴板');
+                }).catch(() => {
+                    textarea.select();
+                    document.execCommand('copy');
+                    showToast('已复制到剪贴板');
+                });
+            } else {
+                const textarea = document.getElementById('modalTextarea');
+                try {
+                    const data = JSON.parse(textarea.value);
+                    if (data.settings) localStorage.setItem('skincare_settings', JSON.stringify(data.settings));
+                    if (data.products) localStorage.setItem('skincare_products', JSON.stringify(data.products));
+                    loadGlobalSettings();
+                    renderProductList();
+                    document.getElementById('importExportModal').classList.remove('active');
+                    showToast('导入成功！');
+                } catch (e) {
+                    showToast('数据格式错误，请检查');
+                }
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== document.getElementById('importExportModal')) return;
+            document.getElementById('importExportModal').classList.remove('active');
+        }
+
+        // ============ 保存并预览 ============
+        function saveAndPreview() {
+            // 保存全局设置
+            saveSettings({
+                globalTitle: document.getElementById('globalTitle').value,
+                globalSubtitle: document.getElementById('globalSubtitle').value,
+                coverTitle: document.getElementById('coverTitle').value,
+                coverDesc: document.getElementById('coverDesc').value,
+                coverBadge: document.getElementById('coverBadge').value,
+                wechatId: document.getElementById('wechatId').value
+            });
+            showToast('已保存！正在打开预览...');
+            setTimeout(() => {
+                window.open('index.html', '_blank');
+            }, 500);
+        }
+
+        // ============ Toast ============
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        // ============ 键盘事件 ============
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('importExportModal').classList.remove('active');
+            }
+            // Ctrl+S 保存
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveAndPreview();
+            }
+        });
+
+        // ============ 初始化 ============
+        loadGlobalSettings();
+        renderProductList();
+    </script>
+</body>
+</html>
