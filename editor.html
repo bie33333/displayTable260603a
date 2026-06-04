@@ -275,6 +275,7 @@
             <button class="btn btn-outline btn-sm" onclick="showImportExport('import')">📥 导入</button>
             <button class="btn btn-outline btn-sm" onclick="showImportExport('export')">📤 导出</button>
             <button class="btn btn-outline btn-sm" onclick="addProduct()">➕ 添加产品</button>
+            <button class="btn btn-success" onclick="downloadIndexOnly()">📥 下载 index.html</button>
             <button class="btn btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
         </div>
     </div>
@@ -282,8 +283,9 @@
     <div class="editor-container">
         <!-- 提示 -->
         <div class="tip-bar">
-            💡 <b>使用方法：</b>编辑产品信息 → 点「保存并预览」→ 会自动打开顾客看到的最终页面。<br>
-            📌 数据保存在浏览器本地，关闭页面不会丢失。换电脑需用「导出/导入」迁移。
+            💡 <b>使用方法：</b>编辑产品信息 → 点「保存并预览」查看效果 → 点「下载 index.html」获取可部署的最终文件。<br>
+            📌 下载的 index.html 已内嵌产品数据，可直接与图片文件夹一起部署到 GitHub Pages。<br>
+            🔄 数据保存在浏览器本地，关闭页面不会丢失。换电脑需用「导出/导入」迁移。
         </div>
 
         <!-- 全局设置 -->
@@ -329,6 +331,7 @@
         <!-- 底部操作 -->
         <div style="display:flex;gap:10px;margin-bottom:40px;">
             <button class="btn btn-primary" style="flex:1;padding:12px;" onclick="saveAndPreview()">💾 保存并预览图册</button>
+            <button class="btn btn-success" style="flex:1;padding:12px;" onclick="downloadIndexOnly()">📥 下载 index.html</button>
             <button class="btn btn-outline" style="flex:1;padding:12px;" onclick="showImportExport('export')">📤 导出数据备份</button>
         </div>
     </div>
@@ -663,9 +666,9 @@
             document.getElementById('importExportModal').classList.remove('active');
         }
 
-        // ============ 保存并预览 ============
-        function saveAndPreview() {
-            // 保存全局设置
+        // ============ 仅下载 index.html（不预览） ============
+        function downloadIndexOnly() {
+            // 先保存当前设置
             saveSettings({
                 globalTitle: document.getElementById('globalTitle').value,
                 globalSubtitle: document.getElementById('globalSubtitle').value,
@@ -674,10 +677,395 @@
                 coverBadge: document.getElementById('coverBadge').value,
                 wechatId: document.getElementById('wechatId').value
             });
-            showToast('已保存！正在打开预览...');
+            const products = getProducts();
+            const settings = getSettings();
+            showToast('正在生成可部署的 index.html...');
+            syncAndDownloadIndex(products, settings);
+        }
+
+        // ============ 保存并预览 ============
+        function saveAndPreview() {
+            // 保存全局设置
+            const settings = {
+                globalTitle: document.getElementById('globalTitle').value,
+                globalSubtitle: document.getElementById('globalSubtitle').value,
+                coverTitle: document.getElementById('coverTitle').value,
+                coverDesc: document.getElementById('coverDesc').value,
+                coverBadge: document.getElementById('coverBadge').value,
+                wechatId: document.getElementById('wechatId').value
+            };
+            saveSettings(settings);
+            // 同时保存产品数据
+            const products = getProducts();
+
+            showToast('已保存！正在生成可部署的 index.html...');
             setTimeout(() => {
+                // 生成同步了数据的 index.html 并触发下载
+                syncAndDownloadIndex(products, settings);
+                // 打开预览
                 window.open('index.html', '_blank');
-            }, 500);
+            }, 300);
+        }
+
+        // ============ 同步数据到 index.html 并触发下载 ============
+        function syncAndDownloadIndex(products, settings) {
+            // 获取当前 index.html 的内容
+            fetch('index.html?t=' + Date.now())
+                .then(res => res.text())
+                .then(html => {
+                    // 1. 替换 defaultProducts 数组
+                    // 生成格式化的 JS 对象字面量（每项缩进12空格）
+                    const productsStr = products.map(p => {
+                        const tagsStr = '[' + (p.tags || []).map(t => "'" + t.replace(/'/g, "\\'") + "'").join(',') + ']';
+                        return "            { id:" + p.id
+                            + ", name:'" + (p.name || '').replace(/'/g, "\\'") + "'"
+                            + ", brief:'" + (p.brief || '').replace(/'/g, "\\'") + "'"
+                            + ", price:'" + (p.price || '') + "'"
+                            + ", originalPrice:'" + (p.originalPrice || '') + "'"
+                            + ", tag:'" + (p.tag || '').replace(/'/g, "\\'") + "'"
+                            + ", tagClass:'" + (p.tagClass || '') + "'"
+                            + ", featured:" + (p.featured ? 'true' : 'false')
+                            + ", desc:'" + (p.desc || '').replace(/'/g, "\\'").replace(/\n/g, '') + "'"
+                            + ", tags:" + tagsStr
+                            + ", img:'" + (p.img || '').replace(/'/g, "\\'") + "' }";
+                    }).join(',\n');
+
+                    const prodRegex = /(const defaultProducts = )\[[\s\S]*?\];/;
+                    html = html.replace(prodRegex, '$1[\n' + productsStr + '\n        ];');
+
+                    // 2. 替换全局设置相关的 meta 标签和标题
+                    html = html.replace(
+                        /<title>[^<]*<\/title>/,
+                        '<title>' + escapeHtml(settings.globalTitle) + '</title>'
+                    );
+                    html = html.replace(
+                        /<meta property="og:title" content="[^"]*">/,
+                        '<meta property="og:title" content="' + escapeHtml(settings.globalTitle) + ' | 臻选好物推荐">'
+                    );
+                    html = html.replace(
+                        /<meta property="og:description" content="[^"]*">/,
+                        '<meta property="og:description" content="' + escapeHtml(settings.coverDesc) + '，点击查看精选护肤好物">'
+                    );
+                    html = html.replace(
+                        /<meta itemprop="name" content="[^"]*">/,
+                        '<meta itemprop="name" content="' + escapeHtml(settings.globalTitle) + ' | 臻选好物推荐">'
+                    );
+                    html = html.replace(
+                        /<meta itemprop="description" content="[^"]*">/,
+                        '<meta itemprop="description" content="' + escapeHtml(settings.coverDesc) + '，点击查看精选护肤好物">'
+                    );
+                    html = html.replace(
+                        /<meta name="twitter:title" content="[^"]*">/,
+                        '<meta name="twitter:title" content="' + escapeHtml(settings.globalTitle) + ' | 臻选好物推荐">'
+                    );
+                    html = html.replace(
+                        /<meta name="twitter:description" content="[^"]*">/,
+                        '<meta name="twitter:description" content="' + escapeHtml(settings.coverDesc) + '，点击查看精选护肤好物">'
+                    );
+
+                    // 触发浏览器下载
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'index.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showToast('✅ index.html 已下载！将其替换到项目文件夹即可部署');
+                })
+                .catch(() => {
+                    // 降级方案：直接用内嵌模板生成
+                    showToast('⚠️ 无法读取 index.html，尝试内嵌模板生成...');
+                    generateIndexFromTemplate(products, settings);
+                });
+        }
+
+        // ============ 内嵌模板降级方案 ============
+        function generateIndexFromTemplate(products, settings) {
+            // 从 editor.html 自身解析出 index.html 的骨架模板
+            // 这里用 index.html 的 HTML 结构作为内嵌模板
+            const productsStr = products.map(p => {
+                const tagsStr = '[' + (p.tags || []).map(t => "'" + t.replace(/'/g, "\\'") + "'").join(',') + ']';
+                return "            { id:" + p.id
+                    + ", name:'" + (p.name || '').replace(/'/g, "\\'") + "'"
+                    + ", brief:'" + (p.brief || '').replace(/'/g, "\\'") + "'"
+                    + ", price:'" + (p.price || '') + "'"
+                    + ", originalPrice:'" + (p.originalPrice || '') + "'"
+                    + ", tag:'" + (p.tag || '').replace(/'/g, "\\'") + "'"
+                    + ", tagClass:'" + (p.tagClass || '') + "'"
+                    + ", featured:" + (p.featured ? 'true' : 'false')
+                    + ", desc:'" + (p.desc || '').replace(/'/g, "\\'").replace(/\n/g, '') + "'"
+                    + ", tags:" + tagsStr
+                    + ", img:'" + (p.img || '').replace(/'/g, "\\'") + "' }";
+            }).join(',\n');
+
+            // 生成完整的 index.html（精简版，保留核心结构）
+            const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${escapeHtml(settings.globalTitle)}</title>
+    <meta property="og:title" content="${escapeHtml(settings.globalTitle)} | 臻选好物推荐">
+    <meta property="og:description" content="${escapeHtml(settings.coverDesc)}，点击查看精选护肤好物">
+    <meta property="og:image" content="https://你的域名/微信图片_20260602120441_17_1315.jpg">
+    <meta property="og:url" content="https://你的域名/">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="${escapeHtml(settings.globalTitle)}">
+    <meta itemprop="name" content="${escapeHtml(settings.globalTitle)} | 臻选好物推荐">
+    <meta itemprop="description" content="${escapeHtml(settings.coverDesc)}，点击查看精选护肤好物">
+    <meta itemprop="image" content="https://你的域名/微信图片_20260602120441_17_1315.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${escapeHtml(settings.globalTitle)} | 臻选好物推荐">
+    <meta name="twitter:description" content="${escapeHtml(settings.coverDesc)}，点击查看精选护肤好物">
+    <meta name="twitter:image" content="https://你的域名/微信图片_20260602120441_17_1315.jpg">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:#fdf6f0;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+        .header{position:fixed;top:0;left:0;right:0;z-index:100;background:linear-gradient(135deg,#f8e3d9,#f0d5c3,#e8c4b5);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 20px rgba(180,130,110,0.15)}
+        .header-brand{display:flex;align-items:center;gap:10px}
+        .header-logo{width:36px;height:36px;background:linear-gradient(135deg,#d4a08a,#c0856a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+        .header-title{font-size:17px;font-weight:600;color:#5a3e36;letter-spacing:1px}
+        .header-subtitle{font-size:11px;color:#9b7b6e;letter-spacing:0.5px}
+        .header-actions{display:flex;gap:12px}
+        .header-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.7);border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#8b6b5e;transition:all .3s}
+        .header-btn:active{transform:scale(0.9);background:rgba(255,255,255,0.9)}
+        .main-container{padding-top:70px;padding-bottom:100px}
+        .cover-section{text-align:center;padding:30px 20px 20px;position:relative}
+        .cover-badge{display:inline-block;background:linear-gradient(135deg,#d4a08a,#c0856a);color:#fff;padding:6px 20px;border-radius:20px;font-size:13px;letter-spacing:2px;margin-bottom:15px}
+        .cover-title{font-size:26px;font-weight:700;color:#4a3028;letter-spacing:2px;margin-bottom:6px}
+        .cover-desc{font-size:14px;color:#9b7b6e;letter-spacing:1px;margin-bottom:8px}
+        .cover-divider{display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0}
+        .cover-divider::before,.cover-divider::after{content:'';width:40px;height:1px;background:#d4a08a}
+        .cover-divider-icon{font-size:14px;color:#d4a08a}
+        .product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:12px 16px}
+        .product-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(180,130,110,0.1);transition:transform .3s,box-shadow .3s;cursor:pointer;position:relative}
+        .product-card:active{transform:scale(0.97)}
+        .product-card.featured{grid-column:span 2;display:flex;flex-direction:row;border:2px solid #e8c4b5}
+        .product-card.featured .product-img-wrap{width:50%;flex-shrink:0}
+        .product-card.featured .product-info{flex:1;display:flex;flex-direction:column;justify-content:center}
+        .product-img-wrap{position:relative;width:100%;aspect-ratio:1;overflow:hidden;background:#faf5f2}
+        .product-card.featured .product-img-wrap{aspect-ratio:auto;min-height:200px}
+        .product-img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+        .product-card:active .product-img{transform:scale(1.05)}
+        .product-tag{position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#e8785a,#d4543a);color:#fff;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:500;letter-spacing:0.5px}
+        .product-tag.new{background:linear-gradient(135deg,#d4a08a,#c0856a)}
+        .product-tag.hot{background:linear-gradient(135deg,#e8785a,#d4543a)}
+        .product-info{padding:12px}
+        .product-name{font-size:15px;font-weight:600;color:#4a3028;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+        .product-brief{font-size:12px;color:#9b7b6e;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+        .product-bottom{display:flex;align-items:center;justify-content:space-between}
+        .product-price{font-size:18px;font-weight:700;color:#d4543a}
+        .product-price .unit{font-size:13px;font-weight:500}
+        .product-price .original{font-size:12px;color:#c0b0a8;text-decoration:line-through;margin-left:6px;font-weight:400}
+        .product-action{background:linear-gradient(135deg,#d4a08a,#c0856a);color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:12px;cursor:pointer;letter-spacing:0.5px;transition:opacity .3s}
+        .product-action:active{opacity:0.8}
+        .section-title{display:flex;align-items:center;justify-content:center;gap:12px;padding:24px 20px 8px}
+        .section-title-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#d4a08a,transparent)}
+        .section-title-text{font-size:16px;font-weight:600;color:#5a3e36;letter-spacing:2px;white-space:nowrap}
+        .footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 -2px 20px rgba(180,130,110,0.1);z-index:100}
+        .footer-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f8e3d9,#e8c4b5);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+        .footer-info{flex:1;min-width:0}
+        .footer-name{font-size:14px;font-weight:600;color:#4a3028}
+        .footer-tip{font-size:11px;color:#9b7b6e}
+        .footer-consult-btn{background:linear-gradient(135deg,#07c160,#06ad56);color:#fff;border:none;padding:10px 20px;border-radius:22px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:1px;white-space:nowrap;transition:all .3s;flex-shrink:0}
+        .footer-consult-btn:active{transform:scale(0.95);opacity:0.9}
+        .footer-cart-btn{width:44px;height:44px;border-radius:50%;background:#fdf6f0;border:none;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex-shrink:0;position:relative}
+        .cart-badge{position:absolute;top:2px;right:2px;background:#e8785a;color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600}
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+        .modal-overlay.active{opacity:1;pointer-events:auto}
+        .modal{background:#fff;border-radius:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;transform:translateY(30px);transition:transform .3s;position:relative}
+        .modal-overlay.active .modal{transform:translateY(0)}
+        .modal-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:20px 20px 0 0}
+        .modal-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
+        .modal-content{padding:20px}
+        .modal-name{font-size:20px;font-weight:700;color:#4a3028;margin-bottom:8px}
+        .modal-desc{font-size:14px;color:#7a5e52;line-height:1.8;margin-bottom:16px}
+        .modal-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+        .modal-tag{background:#fdf6f0;color:#8b6b5e;padding:4px 12px;border-radius:12px;font-size:12px}
+        .modal-price-row{display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid #f0e8e2}
+        .modal-price{font-size:24px;font-weight:700;color:#d4543a}
+        .modal-buy-btn{background:linear-gradient(135deg,#d4a08a,#c0856a);color:#fff;border:none;padding:12px 28px;border-radius:22px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:1px;transition:all .3s}
+        .modal-buy-btn:active{transform:scale(0.95);opacity:0.9}
+        .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);background:rgba(0,0,0,0.75);color:#fff;padding:12px 24px;border-radius:22px;font-size:14px;z-index:300;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap}
+        .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+        ::-webkit-scrollbar{width:0}
+        @keyframes heartBeat{0%{transform:scale(1)}25%{transform:scale(1.3)}50%{transform:scale(1)}75%{transform:scale(1.3)}100%{transform:scale(1)}}
+        .heart-anim{animation:heartBeat .6s ease}
+        .bg-decor-top{position:fixed;top:-80px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(212,160,138,0.1),transparent 70%);pointer-events:none;z-index:0}
+        .bg-decor-bottom{position:fixed;bottom:80px;left:-80px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(200,150,130,0.08),transparent 70%);pointer-events:none;z-index:0}
+    </style>
+</head>
+<body>
+    <div class="bg-decor-top"></div>
+    <div class="bg-decor-bottom"></div>
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-logo">✨</div>
+            <div>
+                <div class="header-title">${escapeHtml(settings.globalTitle)}</div>
+                <div class="header-subtitle">${escapeHtml(settings.globalSubtitle)}</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="sharePage()" title="分享">📤</button>
+            <button class="header-btn" onclick="toggleLike()" id="likeBtn" title="收藏">🤍</button>
+        </div>
+    </header>
+    <div class="main-container">
+        <section class="cover-section">
+            <div class="cover-badge">${escapeHtml(settings.coverBadge)}</div>
+            <h1 class="cover-title">${escapeHtml(settings.coverTitle)}</h1>
+            <p class="cover-desc">${escapeHtml(settings.coverDesc)}</p>
+            <div class="cover-divider">
+                <span class="cover-divider-icon">✦</span>
+            </div>
+        </section>
+        <div id="productGrid" class="product-grid"></div>
+    </div>
+    <footer class="footer-bar">
+        <div class="footer-avatar">💆‍♀️</div>
+        <div class="footer-info">
+            <div class="footer-name">专属护肤顾问</div>
+            <div class="footer-tip">点击咨询了解更多产品</div>
+        </div>
+        <button class="footer-cart-btn" onclick="showCart()">
+            🛒
+            <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+        </button>
+        <button class="footer-consult-btn" onclick="consultNow()">💬 立即咨询</button>
+    </footer>
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img class="modal-img" id="modalImg" src="" alt="">
+            <div class="modal-content">
+                <h2 class="modal-name" id="modalName"></h2>
+                <p class="modal-desc" id="modalDesc"></p>
+                <div class="modal-tags" id="modalTags"></div>
+                <div class="modal-price-row">
+                    <span class="modal-price" id="modalPrice"></span>
+                    <button class="modal-buy-btn" onclick="addToCart()">🛒 加入清单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        const defaultProducts = [
+${productsStr}
+        ];
+        const products = JSON.parse(JSON.stringify(defaultProducts));
+        window._wechatId = '${escapeHtml(settings.wechatId)}';
+        const productGrid = document.getElementById('productGrid');
+        let currentProduct = null;
+        let cart = [];
+        let liked = false;
+        function renderProducts() {
+            const featured = products.filter(p => p.featured);
+            const normal = products.filter(p => !p.featured);
+            let html = '';
+            featured.forEach(p => {
+                html += '<div class="product-card featured" onclick="openDetail(' + p.id + ')"><div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" loading="lazy"><span class="product-tag ' + p.tagClass + '">' + p.tag + '</span></div><div class="product-info"><div class="product-name">' + p.name + '</div><div class="product-brief">' + p.brief + '</div><div class="product-bottom"><span class="product-price"><span class="unit">¥</span>' + p.price + '<span class="original">¥' + p.originalPrice + '</span></span><button class="product-action" onclick="event.stopPropagation();quickAdd(' + p.id + ')">+ 加入清单</button></div></div></div>';
+            });
+            if (normal.length > 0) {
+                html += '<div class="section-title" style="grid-column:span 2;"><span class="section-title-line"></span><span class="section-title-text">更多臻选好物</span><span class="section-title-line"></span></div>';
+            }
+            normal.forEach(p => {
+                html += '<div class="product-card" onclick="openDetail(' + p.id + ')"><div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" loading="lazy"><span class="product-tag ' + p.tagClass + '">' + p.tag + '</span></div><div class="product-info"><div class="product-name">' + p.name + '</div><div class="product-brief">' + p.brief + '</div><div class="product-bottom"><span class="product-price"><span class="unit">¥</span>' + p.price + '<span class="original">¥' + p.originalPrice + '</span></span><button class="product-action" onclick="event.stopPropagation();quickAdd(' + p.id + ')">+ 清单</button></div></div></div>';
+            });
+            productGrid.innerHTML = html;
+        }
+        function openDetail(id) {
+            currentProduct = products.find(p => p.id === id);
+            if (!currentProduct) return;
+            document.getElementById('modalImg').src = currentProduct.img;
+            document.getElementById('modalName').textContent = currentProduct.name;
+            document.getElementById('modalDesc').textContent = currentProduct.desc;
+            document.getElementById('modalPrice').innerHTML = '<span class="unit">¥</span>' + currentProduct.price;
+            document.getElementById('modalTags').innerHTML = currentProduct.tags.map(t => '<span class="modal-tag">' + t + '</span>').join('');
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal(event) {
+            if (event && event.target !== document.getElementById('modalOverlay')) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+            currentProduct = null;
+        }
+        function addToCart() { if (!currentProduct) return; quickAdd(currentProduct.id); closeModal(); }
+        function quickAdd(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+            const existing = cart.find(item => item.id === id);
+            if (existing) { existing.qty++; } else { cart.push({ ...product, qty: 1 }); }
+            updateCartBadge();
+            showToast('已添加「' + product.name + '」');
+        }
+        function updateCartBadge() {
+            const badge = document.getElementById('cartBadge');
+            const total = cart.reduce((sum, item) => sum + item.qty, 0);
+            if (total > 0) { badge.style.display = 'flex'; badge.textContent = total; }
+            else { badge.style.display = 'none'; }
+        }
+        function showCart() {
+            if (cart.length === 0) { showToast('清单为空，快去挑选吧~'); return; }
+            let msg = '📋 我的选购清单：\\n\\n';
+            let totalPrice = 0;
+            cart.forEach((item, i) => { msg += (i + 1) + '. ' + item.name + '  ×' + item.qty + '  ¥' + item.price * item.qty + '\\n'; totalPrice += parseFloat(item.price) * item.qty; });
+            msg += '\\n💰 合计：¥' + totalPrice.toFixed(0);
+            msg += '\\n\\n请截图发送给我，立即下单！';
+            alert(msg);
+        }
+        function consultNow() {
+            showToast('请添加微信咨询：${escapeHtml(settings.wechatId)}');
+        }
+        function toggleLike() {
+            liked = !liked;
+            const btn = document.getElementById('likeBtn');
+            if (liked) { btn.textContent = '❤️'; btn.classList.add('heart-anim'); setTimeout(() => btn.classList.remove('heart-anim'), 600); showToast('已收藏 💖'); }
+            else { btn.textContent = '🤍'; showToast('已取消收藏'); }
+        }
+        function sharePage() {
+            if (navigator.share) {
+                navigator.share({ title: '${escapeHtml(settings.globalTitle)}', text: '发现超棒的护肤好物，快来一起变美吧～', url: window.location.href }).catch(() => {});
+            } else {
+                const input = document.createElement('input');
+                input.value = window.location.href;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('链接已复制，快去分享吧~');
+            }
+        }
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => { toast.classList.remove('show'); }, 1800);
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); } });
+        renderProducts();
+    </script>
+</body>
+</html>`;
+
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('✅ index.html 已生成并下载！用此文件替换旧版 index.html 即可部署');
         }
 
         // ============ Toast ============

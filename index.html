@@ -711,7 +711,18 @@
         // ============ 产品数据 ============
         // 优先从编辑器保存的数据加载，如果没有则使用默认数据
         const defaultProducts = [
-            ];
+            { id:1, name:'澳泊源双萃维稳紧数精华液', brief:'双萃焕活·维稳紧致·淡化细纹', price:'138', originalPrice:'269', tag:'HOT', tagClass:'hot', featured:true, desc:'【双萃精华】独特双萃配比，融合多重植物精粹与修护成分，深层滋养肌底，提升肌肤弹性与紧致度。有效改善肌肤粗糙松弛，淡化干纹细纹，令肌肤水嫩饱满、透亮有光泽。', tags:['双萃精华','维稳修护','紧致淡纹','深层滋养'], img:'new/澳泊源双萃维稳紧数精华液(269 138).jpg' },
+            { id:2, name:'杜芙特·阻人乳头瘤病毒(HPV)凝胶', brief:'靶向阻隔·私密护理·健康呵护', price:'128', originalPrice:'388', tag:'HOT', tagClass:'hot', featured:false, desc:'【私密护理】专为女性私密健康研发，含独特阻断成分，有效阻隔HPV病毒侵袭。温和配方不刺激，日常使用守护私密部位健康，让女性远离困扰、自信从容。', tags:['私密护理','HPV防护','温和配方','女性健康'], img:'new/杜芙特·阻人乳头瘤病毒(HPV)凝胶(388 128).jpg' },
+            { id:3, name:'抗时光PQQ胶原蛋白三肽风味饮料', brief:'口服养肤·胶原再生·逆转肌龄', price:'98', originalPrice:'269', tag:'新品', tagClass:'new', featured:false, desc:'【内调养肤】含PQQ活性因子与胶原蛋白三肽，小分子高吸收，由内而外补充肌肤胶原。帮助提升肌肤弹性、淡化皱纹，焕活年轻光采，喝出嘭弹水光肌。', tags:['PQQ活性','胶原蛋白','口服养肤','抗老逆龄'], img:'new/抗时光PQQ胶原蛋白三肽风味饮料(269 98).jpg' },
+            { id:4, name:'库库小屋柔雾不沾杯唇釉', brief:'柔雾哑光·持久显色·不沾杯不掉色', price:'68', originalPrice:'128', tag:'新品', tagClass:'new', featured:false, desc:'【柔雾唇釉】丝绒柔雾质地，上唇轻盈顺滑，一抹即现高级哑光妆感。成膜迅速、持久锁色，喝水不沾杯、亲吻不掉色，全天候保持完美唇妆。', tags:['柔雾哑光','不沾杯','持久显色','高级质感'], img:'new/库库小屋柔雾不沾杯唇釉（128 68）.jpg' },
+            { id:5, name:'天山雪莲抑菌粉护垫', brief:'雪莲精华·天然抑菌·清爽呵护', price:'68', originalPrice:'138', tag:'HOT', tagClass:'hot', featured:false, desc:'【草本护垫】精选天山雪莲等多重草本精华，天然抑菌、温和洁净。柔软亲肤表层，透气干爽，经期及日常均可安心使用，给私密处舒适守护。', tags:['雪莲精华','天然抑菌','透气干爽','日常护理'], img:'new/天山雪莲抑菌粉护垫（138 68）.jpg' },
+            { id:6, name:'天羽颜坊草本抑菌粉', brief:'古方草本·深层抑菌·温和不刺激', price:'168', originalPrice:'388', tag:'新品', tagClass:'new', featured:false, desc:'【草本抑菌】传承草本古方，甄选多味道地药材精心配伍，深入抑菌、温和调理。针对私密部位异味、瘙痒等困扰，帮助恢复健康微环境。', tags:['草本配方','深层抑菌','温和调理','私密护理'], img:'new/天羽颜坊草本抑菌粉（388 168）.jpg' },
+            { id:7, name:'兮缇兰50+美白防晒乳', brief:'SPF50+高倍防晒·美白隔离·轻薄水润', price:'58', originalPrice:'98', tag:'HOT', tagClass:'hot', featured:false, desc:'【美白防晒】SPF50+ PA++++高倍防晒力，有效阻隔UVA/UVB。添加美白精华成分，防晒同时提亮肤色。水润乳液质地，清爽不黏腻、不假白，适合日常通勤及户外活动。', tags:['高倍防晒','美白提亮','轻薄水润','防晒隔离'], img:'new/兮缇兰50+美白防晒乳（98 58）.jpg' },
+            { id:8, name:'植萃保湿抗妆抗皱霜', brief:'植萃精华·深层保湿·抗皱紧致', price:'56', originalPrice:'98', tag:'新品', tagClass:'new', featured:false, desc:'【植萃抗皱】蕴含多种植物萃取精华，深入补水锁湿，提升肌肤含水量。有效改善因干燥引起的细纹与松弛，长期使用紧致轮廓、平滑肤质，还原水嫩弹润肌肤。', tags:['植萃精华','深层保湿','抗皱紧致','平滑嫩肤'], img:'new/植萃保湿抗妆抗皱霜（98 56）.jpg' },
+            { id:9, name:'BAOXTUGE宝秀格电动按摩眼霜', brief:'微震按摩·淡化眼纹·焕亮眼周', price:'99', originalPrice:'218', tag:'HOT', tagClass:'hot', featured:false, desc:'【电动眼霜】高频微震按摩头设计，搭配滋养眼霜精华，每秒数千次震动促进吸收。精准击退眼周细纹、黑眼圈及浮肿，恢复紧致明亮的年轻双眸。', tags:['电动按摩','淡化眼纹','去黑眼圈','紧致眼周'], img:'new/BAOXTUGE宝秀格电动按摩眼霜（218 99）.jpg' },
+            { id:10, name:'MIUSITE精华液', brief:'密集修护·焕亮肤色·水润透光', price:'82', originalPrice:'169', tag:'新品', tagClass:'new', featured:false, desc:'【焕亮精华】高浓度精华配方，渗透肌底密集修护。改善肌肤暗沉不均，提亮肤色，同时补水保湿，令肌肤由内而外透出水润光泽感。', tags:['密集修护','提亮肤色','补水保湿','焕发光泽'], img:'new/MIUSITE精华液（169 82）.jpg' },
+            { id:11, name:'Msnbeauty气垫CC霜', brief:'轻薄遮瑕·水光裸妆·自然服帖', price:'88', originalPrice:'188', tag:'HOT', tagClass:'hot', featured:false, desc:'【水光气垫】微米级粉质细腻轻薄，一拍自然遮瑕不假面。含保湿精华成分，上妆即养肤，打造韩式水光裸妆效果，全天不暗沉不卡粉。', tags:['轻薄遮瑕','水光裸妆','保湿养肤','自然服帖'], img:'new/Msnbeauty气垫CC霜（188 88）.jpg' }
+        ];
 
         // ============ 从编辑器加载数据 ============
         function loadSavedData() {
