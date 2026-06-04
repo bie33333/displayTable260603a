@@ -709,164 +709,38 @@
     <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
     <script>
         // ============ 产品数据 ============
-        const products = [
-            {
-                id: 1,
-                name: '精华焕颜水光精华液',
-                brief: '深层补水保湿，提亮肤色，改善暗沉粗糙',
-                price: '298',
-                originalPrice: '398',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: true,
-                desc: '蕴含高浓度玻尿酸与烟酰胺精华，深入肌底补水锁水，持续使用可明显改善肤色不均，令肌肤水润透亮，焕发健康光彩。适合所有肤质，尤其推荐干性和暗沉肌肤使用。',
-                tags: ['补水保湿', '提亮肤色', '温和不刺激'],
-                img: '微信图片_20260602120441_17_1315.jpg'
-            },
-            {
-                id: 2,
-                name: '修复舒缓精华乳',
-                brief: '修护肌肤屏障，舒缓敏感泛红',
-                price: '268',
-                originalPrice: '358',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: '含神经酰胺和积雪草提取物，有效修护受损肌肤屏障，舒缓泛红敏感，提升肌肤抵抗力。轻盈乳液质地，快速吸收不黏腻。',
-                tags: ['屏障修护', '舒缓敏感', '轻盈质地'],
-                img: '微信图片_20260602120442_18_1315.jpg'
-            },
-            {
-                id: 3,
-                name: '紧致抗皱眼霜',
-                brief: '淡化细纹，紧致眼周，告别熊猫眼',
-                price: '328',
-                originalPrice: '428',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: false,
-                desc: '添加多重胜肽与咖啡因成分，精准淡化眼周细纹与黑眼圈，紧致眼周轮廓。陶瓷按摩头设计，促进吸收同时舒缓眼部疲劳。',
-                tags: ['淡化细纹', '紧致眼周', '去黑眼圈'],
-                img: '微信图片_20260602120443_19_1315.jpg'
-            },
-            {
-                id: 4,
-                name: '水润保湿面霜',
-                brief: '24小时持久保湿，锁水不油腻',
-                price: '238',
-                originalPrice: '328',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: '采用微囊锁水科技，持续24小时为肌肤补充水分。质地清透不油腻，适合日常早晚使用。添加角鲨烷与维生素E，滋养同时抗氧化。',
-                tags: ['持久保湿', '清透不腻', '抗氧化'],
-                img: '微信图片_20260602120444_20_1315.jpg'
-            },
-            {
-                id: 5,
-                name: '氨基酸温和洁面乳',
-                brief: '温和清洁不紧绷，泡沫细腻丰富',
-                price: '158',
-                originalPrice: '198',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: false,
-                desc: '氨基酸配方温和清洁，不破坏肌肤天然保护膜。细腻泡沫深入毛孔带走污垢，洗后肌肤水润不紧绷。PH值接近肌肤，敏感肌也适用。',
-                tags: ['温和清洁', '氨基酸配方', '敏感肌可用'],
-                img: '微信图片_20260602120445_21_1315.jpg'
-            },
-            {
-                id: 6,
-                name: '防晒隔离霜SPF50+',
-                brief: '高倍防晒，轻薄透气不闷痘',
-                price: '198',
-                originalPrice: '258',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: 'SPF50+ PA++++ 高倍防晒，同时兼具隔离修护功能。轻薄乳液质地，上脸不假白不闷痘。添加养肤成分，防晒同时呵护肌肤。',
-                tags: ['高倍防晒', '轻薄透气', '养肤隔离'],
-                img: '微信图片_20260602120446_22_1315.jpg'
-            },
-            {
-                id: 7,
-                name: '玻尿酸补水面膜',
-                brief: '5片装 · 密集补水，敷出水光肌',
-                price: '128',
-                originalPrice: '168',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: false,
-                desc: '三重玻尿酸层层渗透，15分钟密集补水。超薄蚕丝膜布贴合面部，精华液充足不滴落。每周2-3次，持续使用肌肤水嫩光滑。',
-                tags: ['密集补水', '蚕丝膜布', '一盒5片'],
-                img: '微信图片_20260602120447_23_1315.jpg'
-            },
-            {
-                id: 8,
-                name: '玫瑰精华身体乳',
-                brief: '全身滋润，持久留香，丝滑肌肤',
-                price: '168',
-                originalPrice: '218',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: '蕴含大马士革玫瑰精华与乳木果油，深层滋润全身肌肤，改善干燥起皮。淡雅玫瑰香气持久萦绕，让每次涂抹都是一场SPA享受。',
-                tags: ['全身滋润', '玫瑰留香', '丝滑质地'],
-                img: '微信图片_20260602120448_24_1315.jpg'
-            },
-            {
-                id: 9,
-                name: 'VC焕白精华液',
-                brief: '美白淡斑，均匀肤色，焕亮肌肤',
-                price: '358',
-                originalPrice: '468',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: false,
-                desc: '高浓度VC衍生物搭配烟酰胺，从源头抑制黑色素生成。坚持使用4周，肤色明显提亮，色斑痘印淡化。清爽水润质地，不黏腻好吸收。',
-                tags: ['美白淡斑', '均匀肤色', '高浓度VC'],
-                img: '微信图片_20260602120448_25_1315.jpg'
-            },
-            {
-                id: 10,
-                name: '胶原蛋白精华液',
-                brief: '补充胶原，饱满紧致，抗初老',
-                price: '388',
-                originalPrice: '498',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: '小分子胶原蛋白肽直达肌底，搭配弹性蛋白共同作用，提升肌肤弹性和紧致度。适合25+初抗老需求，令肌肤饱满弹润。',
-                tags: ['补充胶原', '紧致饱满', '抗初老'],
-                img: '微信图片_20260602120449_26_1315.jpg'
-            },
-            {
-                id: 11,
-                name: '卸妆水温和净透',
-                brief: '温和卸妆，净透不残留，养肤卸妆二合一',
-                price: '138',
-                originalPrice: '178',
-                tag: 'HOT',
-                tagClass: 'hot',
-                featured: false,
-                desc: '胶束微米科技轻松卸除彩妆和防晒，无需反复擦拭。添加保湿成分，卸妆同时养护肌肤。入眼不刺激，适合日常使用。',
-                tags: ['温和卸妆', '净透不残留', '养肤配方'],
-                img: '微信图片_20260602120450_27_1315.jpg'
-            },
-            {
-                id: 12,
-                name: '唇部护理套装',
-                brief: '去死皮+滋润修护，告别干裂起皮',
-                price: '98',
-                originalPrice: '138',
-                tag: '新品',
-                tagClass: 'new',
-                featured: false,
-                desc: '含唇部磨砂膏和修护唇膜，先温和去除死皮再深层滋润修护。天然蜂蜡和维生素E配方，让双唇恢复水嫩饱满。',
-                tags: ['去死皮', '滋润修护', '唇部套装'],
-                img: '微信图片_20260602120451_28_1315.jpg'
+        // 优先从编辑器保存的数据加载，如果没有则使用默认数据
+        const defaultProducts = [
+            ];
+
+        // ============ 从编辑器加载数据 ============
+        function loadSavedData() {
+            const saved = localStorage.getItem('skincare_products');
+            if (saved) {
+                try { return JSON.parse(saved); } catch(e) {}
             }
-        ];
+            return JSON.parse(JSON.stringify(defaultProducts));
+        }
+        const products = loadSavedData();
+
+        // ============ 加载全局设置 ============
+        function loadSettings() {
+            const saved = localStorage.getItem('skincare_settings');
+            if (saved) {
+                try {
+                    const s = JSON.parse(saved);
+                    document.querySelector('.header-title').textContent = s.globalTitle || '护肤臻品图册';
+                    document.querySelector('.header-subtitle').textContent = s.globalSubtitle || 'SKINCARE COLLECTION';
+                    document.querySelector('.cover-title').textContent = s.coverTitle || '臻选护肤好物';
+                    document.querySelector('.cover-desc').textContent = s.coverDesc || '用心甄选 · 呵护每一寸肌肤';
+                    document.querySelector('.cover-badge').textContent = s.coverBadge || 'HOT RECOMMEND';
+                    document.title = s.globalTitle || '护肤臻品图册';
+                    // 更新微信咨询
+                    window._wechatId = s.wechatId || 'XXX_WeChat';
+                } catch(e) {}
+            }
+        }
+        loadSettings();
 
         // ============ 渲染产品列表 ============
         const productGrid = document.getElementById('productGrid');
@@ -1012,7 +886,8 @@
                 ? '您好，我想咨询产品详情和下单事宜～'
                 : '您好，我想了解护肤产品～';
             // 这里可以替换为你的微信号或企微链接
-            showToast('请添加微信咨询：XXX_WeChat');
+            const wechatId = window._wechatId || 'XXX_WeChat';
+            showToast('请添加微信咨询：' + wechatId);
             // 如果是微信环境，可以尝试唤起微信客服
             // window.location.href = 'weixin://dl/chat?xxx';
         }
